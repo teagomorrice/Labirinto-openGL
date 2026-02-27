@@ -1,0 +1,10 @@
+# depslib dependency file v1.0
+1772205209 source:c:\users\thiago\desktop\cg-bcc\maze\maze-cg\main.c
+	<windows.h>
+	<gl/glu.h>
+	<gl/gl.h>
+	<stdio.h>
+	<math.h>
+	<stdlib.h>
+	<time.h>
+
