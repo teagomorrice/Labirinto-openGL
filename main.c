@@ -26,6 +26,8 @@ void desenhaBarraTempo(int tempoRestante, int tempoLimite);
 void desenhaChave(float x, float z);
 GLuint carregarTextura(const char* arquivo);
 int podeAndar(float x, float z);
+void desenhaMenu();
+void configurarLuzModoDark();
 
 #define MAP_WIDTH  15
 #define MAP_HEIGHT 15
@@ -305,214 +307,191 @@ int WINAPI WinMain(HINSTANCE hInstance,
             }
         }
         else
-        {
-            /* OpenGL animation code goes here */
+{
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-            glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    if (estadoJogo == 0) {
+        // MENU
+        desenhaMenu();
+        continue;   // Volta ao início do loop
+    }
 
-            if (estadoJogo == 0) {
-                    // Menu
-                    desenhaMenu();
-                } else {
-                    if (modoJogo == 1) {
-                        configurarLuzModoDark();
+    // ===== CÓDIGO DO JOGO (só executa se estadoJogo != 0) =====
 
-                        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    if (modoJogo == 1) {
+        configurarLuzModoDark();
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 
-                        glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+        float centroPlayer = 0.3f;
+        GLfloat luzPosicao[] = { playerX, centroPlayer, playerZ, 1.0f };
+        glLightfv(GL_LIGHT0, GL_POSITION, luzPosicao);
+    } else {
+        glDisable(GL_LIGHTING);
+        glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    }
 
-                         float centroPlayer = 0.3f;
-                         GLfloat luzPosicao[] = { playerX, 0.3f, playerZ, 1.0f };
-                         glLightfv(GL_LIGHT0, GL_POSITION, luzPosicao);
-                    } else {
-                        glDisable(GL_LIGHTING);
-                        glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
-                        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-                    }
+    static DWORD ultimoMovimento = 0;
+    DWORD agora = GetTickCount();
 
-                    static DWORD ultimoMovimento = 0;
-                    DWORD agora = GetTickCount();
+    int intervaloMovimento = 100;
+    if (agora - ultimoMovimento > intervaloMovimento) {
+        // ===== MOVIMENTO DO INIMIGO =====
+        if (inimigoVivo) {
+            ultimoMovimento = agora;
+            float dx = playerX - inimigoX;
+            float dz = playerZ - inimigoZ;
 
-                    int intervaloMovimento = 100;
-                    if (agora - ultimoMovimento > intervaloMovimento) {
-                    // ===== MOVIMENTO DO INIMIGO =====
-                    if (inimigoVivo) {
-                        ultimoMovimento = agora;
-                        float dx = playerX - inimigoX;
-                        float dz = playerZ - inimigoZ;
+            float distancia = sqrt(dx*dx + dz*dz);
 
-                        float distancia = sqrt(dx*dx + dz*dz);
+            if (distancia > 0.8f) {
+                float dirX = dx / distancia;
+                float dirZ = dz / distancia;
 
-                        if (distancia > 0.8f) {
-                            float dirX = dx / distancia;
-                            float dirZ = dz / distancia;
+                float velocidadeAtual;
+                if (distancia > 5.0f) velocidadeAtual = 0.03f;
+                else if (distancia > 3.0f) velocidadeAtual = 0.05f;
+                else if (distancia > 1.5f) velocidadeAtual = 0.08f;
+                else velocidadeAtual = 0.1f;
 
-                            float velocidadeAtual;
-                            if (distancia > 5.0f) {
-                                velocidadeAtual = 0.03f;
-                            } else if (distancia > 3.0f) {
-                                velocidadeAtual = 0.05f;
-                            } else if (distancia > 1.5f) {
-                                velocidadeAtual = 0.08f;
-                            } else {
-                                velocidadeAtual = 0.1f;
-                            }
+                float novoX = inimigoX + dirX * velocidadeAtual;
+                float novoZ = inimigoZ + dirZ * velocidadeAtual;
 
-                            float novoX = inimigoX + dirX * velocidadeAtual;
-                            float novoZ = inimigoZ + dirZ * velocidadeAtual;
-
-                            if (novoX >= 0.0f && novoX <= MAP_WIDTH - 1 &&
-                                podeAndar(novoX, inimigoZ)) {
-                                inimigoX = novoX;
-                            }
-
-                            if (novoZ >= 0.0f && novoZ <= MAP_HEIGHT - 1 &&
-                                podeAndar(inimigoX, novoZ)) {
-                                inimigoZ = novoZ;
-                            }
-                        }
-                    }
-                   }
-                    // COLISÃO
-                    float distanciaColisao = sqrt(
-                        (playerX - inimigoX)*(playerX - inimigoX) +
-                        (playerZ - inimigoZ)*(playerZ - inimigoZ)
-                    );
-
-                    if (distanciaColisao < 0.8f)
-                    {
-                        MessageBox(NULL, "O inimigo te pegou!", "Derrota", MB_OK);
-                        PostQuitMessage(0);
-                    }
-
-
-                    /* posição da câmera */
-                    glMatrixMode(GL_MODELVIEW);
-                    glLoadIdentity();
-
-
-                    float camX = playerX;
-                    float camY = 12.0f;
-                    float camZ = playerZ + 12.0f;
-
-                    gluLookAt(
-                        camX, camY, camZ,
-                        playerX, 0.0f, playerZ,
-                        0.0f, 1.0f, 0.0f
-                    );
-
-                    if (!chaveColetada) {
-                        float distChave = sqrt(pow(playerX - chaveX, 2) + pow(playerZ - chaveZ, 2));
-                        if (distChave < 0.8f) {
-                            chaveColetada = 1;
-                            Beep(1000, 200);
-                        }
-                    }
-
-                    /* chão com textura */
-                    glBindTexture(GL_TEXTURE_2D, texturaChao);
-                    glColor3f(1.0f, 1.0f, 1.0f);
-
-                    // No desenho do chão
-                    glBegin(GL_QUADS);
-                        glTexCoord2f(0, 0);  glVertex3f(0.0f, 0.0f, 0.0f);
-                        glTexCoord2f(MAP_WIDTH, 0); glVertex3f(MAP_WIDTH, 0.0f, 0.0f);
-                        glTexCoord2f(MAP_WIDTH, MAP_HEIGHT); glVertex3f(MAP_WIDTH, 0.0f, MAP_HEIGHT);
-                        glTexCoord2f(0, MAP_HEIGHT);  glVertex3f(0.0f, 0.0f, MAP_HEIGHT);
-                    glEnd();
-
-
-                    glPushMatrix();
-                    glTranslatef(exitX, 0.01f, exitZ);
-
-                    if (chaveColetada) {
-                        glColor3f(0.0f, 1.0f, 0.0f);
-                    } else {
-                        glColor3f(1.0f, 0.0f, 0.0f);
-                    }
-
-                    glBegin(GL_QUADS);
-                        glVertex3f(0, 0, 0);
-                        glVertex3f(1, 0, 0);
-                        glVertex3f(1, 0, 1);
-                        glVertex3f(0, 0, 1);
-                    glEnd();
-                    glPopMatrix();
-
-                    /* labirinto */
-                    for (int z = 0; z < MAP_HEIGHT; z++)
-                    {
-                        for (int x = 0; x < MAP_WIDTH; x++)
-                        {
-                            if (labirinto[z][x] == 1)
-                            {
-                                desenhaCubo((float)x, 0.0f, (float)z);
-                            }
-                        }
-                    }
-                    /* player */
-                        desenhaPlayer(playerX, playerZ);
-                        if (inimigoX >= 0 && inimigoX < MAP_WIDTH &&
-                            inimigoZ >= 0 && inimigoZ < MAP_HEIGHT) {
-                            desenhaInimigo(inimigoX, inimigoZ);
-                        }
-                        desenhaChave(chaveX, chaveZ);
-                        glDisable(GL_LIGHTING);
-                        desenhaBarraTempo(tempoRestante, tempoLimite);
-                        desenhaBarraTempo(tempoRestante, tempoLimite);
-
-                    // Tela Vermelha quando o inimigo chega perto
-                    if(modoJogo == 0){
-                        float distInimigo = sqrt((playerX - inimigoX)*(playerX - inimigoX) +
-                                            (playerZ - inimigoZ)*(playerZ - inimigoZ));
-
-                        if (distInimigo < 3.0f) {
-                            float intensidade = 1.0f - (distInimigo / 3.0f);
-
-                            glEnable(GL_BLEND);
-                            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-                            glDisable(GL_TEXTURE_2D);
-                            glDisable(GL_DEPTH_TEST);
-
-                            glMatrixMode(GL_PROJECTION);
-                            glPushMatrix();
-                            glLoadIdentity();
-                            gluOrtho2D(0, 800, 0, 600);
-
-                            glMatrixMode(GL_MODELVIEW);
-                            glPushMatrix();
-                            glLoadIdentity();
-
-                            glColor4f(1.0f, 0.0f, 0.0f, intensidade * 0.3f);
-                            glBegin(GL_QUADS);
-                                glVertex2f(0, 0);
-                                glVertex2f(800, 0);
-                                glVertex2f(800, 600);
-                                glVertex2f(0, 600);
-                            glEnd();
-
-                            glPopMatrix();
-                            glMatrixMode(GL_PROJECTION);
-                            glPopMatrix();
-                            glMatrixMode(GL_MODELVIEW);
-
-                            glEnable(GL_DEPTH_TEST);
-                            glEnable(GL_TEXTURE_2D);
-                        }
-
-                            glDisable(GL_LIGHTING);
-                            desenhaBarraTempo(tempoRestante, tempoLimite);
-                        }
+                if (novoX >= 0.0f && novoX <= MAP_WIDTH - 1 &&
+                    podeAndar(novoX, inimigoZ)) {
+                    inimigoX = novoX;
                 }
 
-            SwapBuffers(hDC);
-
-            theta += 1.0f;
-            Sleep (1);
+                if (novoZ >= 0.0f && novoZ <= MAP_HEIGHT - 1 &&
+                    podeAndar(inimigoX, novoZ)) {
+                    inimigoZ = novoZ;
+                }
+            }
         }
     }
+
+    // ===== COLISÃO =====
+    float distanciaColisao = sqrt(
+        (playerX - inimigoX)*(playerX - inimigoX) +
+        (playerZ - inimigoZ)*(playerZ - inimigoZ)
+    );
+
+    if (distanciaColisao < 0.8f) {
+        MessageBox(NULL, "O inimigo te pegou!", "Derrota", MB_OK);
+        PostQuitMessage(0);
+    }
+
+    // ===== CÂMERA =====
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+
+    float camX = playerX;
+    float camY = 12.0f;
+    float camZ = playerZ + 12.0f;
+
+    gluLookAt(camX, camY, camZ, playerX, 0.0f, playerZ, 0.0f, 1.0f, 0.0f);
+
+    // ===== VERIFICA CHAVE =====
+    if (!chaveColetada) {
+        float distChave = sqrt(pow(playerX - chaveX, 2) + pow(playerZ - chaveZ, 2));
+        if (distChave < 0.8f) {
+            chaveColetada = 1;
+            Beep(1000, 200);
+        }
+    }
+
+    // ===== CHÃO =====
+    glBindTexture(GL_TEXTURE_2D, texturaChao);
+    glColor3f(1.0f, 1.0f, 1.0f);
+    glBegin(GL_QUADS);
+        glTexCoord2f(0, 0);  glVertex3f(0.0f, 0.0f, 0.0f);
+        glTexCoord2f(MAP_WIDTH, 0); glVertex3f(MAP_WIDTH, 0.0f, 0.0f);
+        glTexCoord2f(MAP_WIDTH, MAP_HEIGHT); glVertex3f(MAP_WIDTH, 0.0f, MAP_HEIGHT);
+        glTexCoord2f(0, MAP_HEIGHT);  glVertex3f(0.0f, 0.0f, MAP_HEIGHT);
+    glEnd();
+
+    // ===== SAÍDA =====
+    glPushMatrix();
+    glTranslatef(exitX, 0.01f, exitZ);
+    if (chaveColetada) glColor3f(0.0f, 1.0f, 0.0f);
+    else glColor3f(1.0f, 0.0f, 0.0f);
+    glBegin(GL_QUADS);
+        glVertex3f(0, 0, 0);
+        glVertex3f(1, 0, 0);
+        glVertex3f(1, 0, 1);
+        glVertex3f(0, 0, 1);
+    glEnd();
+    glPopMatrix();
+
+    // ===== LABIRINTO =====
+    for (int z = 0; z < MAP_HEIGHT; z++) {
+        for (int x = 0; x < MAP_WIDTH; x++) {
+            if (labirinto[z][x] == 1) {
+                desenhaCubo((float)x, 0.0f, (float)z);
+            }
+        }
+    }
+
+    // ===== PLAYER, INIMIGO E CHAVE =====
+    desenhaPlayer(playerX, playerZ);
+    if (inimigoX >= 0 && inimigoX < MAP_WIDTH && inimigoZ >= 0 && inimigoZ < MAP_HEIGHT) {
+        desenhaInimigo(inimigoX, inimigoZ);
+    }
+    desenhaChave(chaveX, chaveZ);
+
+    // ===== UI (desabilita iluminação) =====
+    glDisable(GL_LIGHTING);
+    desenhaBarraTempo(tempoRestante, tempoLimite);  // SÓ UMA VEZ!
+
+    // ===== TELA VERMELHA =====
+    if(modoJogo == 0){
+        float distInimigo = sqrt((playerX - inimigoX)*(playerX - inimigoX) +
+                            (playerZ - inimigoZ)*(playerZ - inimigoZ));
+
+        if (distInimigo < 3.0f) {
+            float intensidade = 1.0f - (distInimigo / 3.0f);
+
+            glEnable(GL_BLEND);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+            glDisable(GL_TEXTURE_2D);
+            glDisable(GL_DEPTH_TEST);
+
+            glMatrixMode(GL_PROJECTION);
+            glPushMatrix();
+            glLoadIdentity();
+            gluOrtho2D(0, 800, 0, 600);
+
+            glMatrixMode(GL_MODELVIEW);
+            glPushMatrix();
+            glLoadIdentity();
+
+            glColor4f(1.0f, 0.0f, 0.0f, intensidade * 0.3f);
+            glBegin(GL_QUADS);
+                glVertex2f(0, 0);
+                glVertex2f(800, 0);
+                glVertex2f(800, 600);
+                glVertex2f(0, 600);
+            glEnd();
+
+            glPopMatrix();
+            glMatrixMode(GL_PROJECTION);
+            glPopMatrix();
+            glMatrixMode(GL_MODELVIEW);
+
+            glEnable(GL_DEPTH_TEST);
+            glEnable(GL_TEXTURE_2D);
+            glDisable(GL_BLEND);
+        }
+    }
+
+    SwapBuffers(hDC);
+    theta += 1.0f;
+    Sleep(1);  // Sleep no final, depois do SwapBuffers
+    }
+}
 
     /* shutdown OpenGL */
     DisableOpenGL(hwnd, hDC, hRC);
@@ -521,7 +500,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
     DestroyWindow(hwnd);
 
     return msg.wParam;
-}
+   }
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
@@ -1190,4 +1169,3 @@ void configurarLuzModoDark() {
     glMaterialfv(GL_FRONT, GL_AMBIENT, materialAmbiente);
     glMaterialfv(GL_FRONT, GL_DIFFUSE, materialDifusa);
 }
-
