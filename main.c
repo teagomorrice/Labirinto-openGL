@@ -14,11 +14,13 @@
 #define GL_BGRA 0x80E1
 #endif
 
+// declaracao das variaveis das texturas
 GLuint texturaParede;
 GLuint texturaChao;
 GLuint texturaSteve;
 GLuint texturaInimigo;
 
+// declaracao das funcoes
 void desenhaPlayer(float x, float z);
 void desenhaCubo(float x, float y, float z);
 void desenhaInimigo(float x, float z);
@@ -113,6 +115,7 @@ GLuint carregarTextura(const char* arquivo)
     return textura;
 }
 
+// se a posicao for 0 (caminho), pode andar
 int podeAndar(float x, float z)
 {
     int mapaX = (int)floor(x);
@@ -144,6 +147,7 @@ void ResizeGLScene(int width, int height)
     glMatrixMode(GL_MODELVIEW);
 }
 
+// desenha as paredes
 void desenhaCubo(float x, float y, float z)
 {
     float s = 1.0f;
@@ -196,6 +200,7 @@ void desenhaCubo(float x, float y, float z)
     glPopMatrix();
 }
 
+// main
 int WINAPI WinMain(HINSTANCE hInstance,
                    HINSTANCE hPrevInstance,
                    LPSTR lpCmdLine,
@@ -262,6 +267,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
     inimigoX = 3.5f;
     inimigoZ = 10.5f;
 
+    // realoca o inimigo se ele spawnar numa parede
     if (!podeAndar(inimigoX, inimigoZ)) {
         int encontrou = 0;
         for (int i = -1; i <= 1 && !encontrou; i++) {
@@ -281,6 +287,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
     /* program main loop */
     while (!bQuit)
     {
+        // comeca a contar o tempo
         DWORD tempoAtual = GetTickCount();
         int tempoDecorrido = (tempoAtual - tempoInicio) / 1000;
         int tempoRestante = tempoLimite - tempoDecorrido;
@@ -318,7 +325,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
         continue;   // Volta ao início do loop
     }
 
-    // ===== CÓDIGO DO JOGO (só executa se estadoJogo != 0) =====
+    // CÓDIGO DO JOGO (só executa se estadoJogo != 0)
 
     if (modoJogo == 1) {
         configurarLuzModoDark();
@@ -339,7 +346,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
 
     int intervaloMovimento = 100;
     if (agora - ultimoMovimento > intervaloMovimento) {
-        // ===== MOVIMENTO DO INIMIGO =====
+        // MOVIMENTO DO INIMIGO
         if (inimigoVivo) {
             ultimoMovimento = agora;
             float dx = playerX - inimigoX;
@@ -947,7 +954,7 @@ void desenhaChave(float x, float z)
 
     glDisable(GL_TEXTURE_2D);
 
-    // ===== CABEÇA DA CHAVE (argola) =====
+    // CABEÇA DA CHAVE (argola)
     glColor3f(1.0f, 0.84f, 0.0f);  // Dourado
 
     // Desenha um anel usando 8 cubos pequenos
