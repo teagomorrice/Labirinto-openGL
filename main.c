@@ -244,6 +244,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
     ShowWindow(hwnd, nCmdShow);
 
     /* enable OpenGL for the window */
+    // Arquivos das texturas
     EnableOpenGL(hwnd, &hDC, &hRC);
     glEnable(GL_TEXTURE_2D);
     texturaParede = carregarTextura("stone.bmp");
@@ -415,14 +416,28 @@ int WINAPI WinMain(HINSTANCE hInstance,
     // ===== SAÍDA =====
     glPushMatrix();
     glTranslatef(exitX, 0.01f, exitZ);
-    if (chaveColetada) glColor3f(0.0f, 1.0f, 0.0f);
-    else glColor3f(1.0f, 0.0f, 0.0f);
+
+    // desativa a textura pra cor n se misturar com a grama
+    glDisable(GL_TEXTURE_2D);
+
+    // desativa a iluminação se estiver no modo dark pra saida brilhar no escuro
+    if (modoJogo == 1) glDisable(GL_LIGHTING);
+    if (chaveColetada)
+        glColor3f(0.0f, 1.0f, 0.0f); // verde
+    else
+        glColor3f(1.0f, 0.0f, 0.0f); // vermelho
+
+    // quadrado da saída
     glBegin(GL_QUADS);
         glVertex3f(0, 0, 0);
         glVertex3f(1, 0, 0);
         glVertex3f(1, 0, 1);
         glVertex3f(0, 0, 1);
     glEnd();
+
+    // 4. Reativa a textura e a luz para não bugar o resto do cenário
+    glEnable(GL_TEXTURE_2D);
+    if (modoJogo == 1) glEnable(GL_LIGHTING);
     glPopMatrix();
 
     // ===== LABIRINTO =====
@@ -434,18 +449,17 @@ int WINAPI WinMain(HINSTANCE hInstance,
         }
     }
 
-    // ===== PLAYER, INIMIGO E CHAVE =====
     desenhaPlayer(playerX, playerZ);
     if (inimigoX >= 0 && inimigoX < MAP_WIDTH && inimigoZ >= 0 && inimigoZ < MAP_HEIGHT) {
         desenhaInimigo(inimigoX, inimigoZ);
     }
     desenhaChave(chaveX, chaveZ);
 
-    // ===== UI (desabilita iluminação) =====
+    // desabilita iluminação na barra de tempo
     glDisable(GL_LIGHTING);
-    desenhaBarraTempo(tempoRestante, tempoLimite);  // SÓ UMA VEZ!
+    desenhaBarraTempo(tempoRestante, tempoLimite);
 
-    // ===== TELA VERMELHA =====
+    // efeito de tela vermelha quando o inimigo chega perto
     if(modoJogo == 0){
         float distInimigo = sqrt((playerX - inimigoX)*(playerX - inimigoX) +
                             (playerZ - inimigoZ)*(playerZ - inimigoZ));
@@ -489,10 +503,9 @@ int WINAPI WinMain(HINSTANCE hInstance,
 
     SwapBuffers(hDC);
     theta += 1.0f;
-    Sleep(1);  // Sleep no final, depois do SwapBuffers
+    Sleep(1);
     }
 }
-
     /* shutdown OpenGL */
     DisableOpenGL(hwnd, hDC, hRC);
 
@@ -521,7 +534,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         }
         break;
 
-        // Mapeamento de teclas do player e tambem do menu
+        // mapeamento das teclas
         case WM_KEYDOWN:
         {
             if (estadoJogo == 0) {
